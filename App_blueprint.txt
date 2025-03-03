@@ -1,0 +1,50 @@
+What do we need for the app
+
+FRONT END
+	two input fields for audio data upload (direct recording and uploading a sound)
+	audio player for the uploaded data
+	possibility 
+	classification results (probability scores?)
+	visualization of the spectrogram
+	Metadata survey: GPS or manual entries, weather conditions, further notes
+
+	
+	Upcoming add ons
+	GPS Map access and entry
+	live sound analysis
+	UI Design improvement
+	Profile with own stats: past observations, most common birds in the area, timely dependent calls
+	community function: sharing and sending entries, bird wikipedia, feedback options
+	
+BACK END
+	integration of CNN Model by StreamLit Callback or FlaskAPI in Colab which connects to the app
+	saving the data as CSV or JSON on drive or local storage
+	connection to data bank (BUND) and sending it
+	data bank: saving accounts, classification results and audio metadata and location status
+	maybe a video file converter to .ogg
+1. Preprocessing
+	a. Data upload
+		save as .ogg
+	b. read audio and normalize
+		librosa load for sample rate?
+	c. create spectrogram
+		MEL SG calculation
+		librosa.feature.melspectrogram() or librosa.feature.mfcc()
+2. Model Inference
+	a. change to proper format (pytorch?)
+	b. load ResNet and make prediction
+	c. give output classification
+3. output results and save
+	a. give out classification in readable output
+	
+	
+	
+	
+	
+OPEN QUESTIONS
+
+Do we save the model locally or on colab?
+locally: it means we are able to implement it directly into streamlit 
+colab: we would have to write an API for it on colab
+
+
