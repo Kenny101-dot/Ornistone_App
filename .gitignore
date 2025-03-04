@@ -3,9 +3,14 @@ env
 
 READ_ME.txt
 
-X.ogg
+*.ogg
 
-temp*.ogg
 
 X*.ogg
 
+
+resnet*
+
+metadata*
+
+metadata.db

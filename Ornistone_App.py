@@ -4,7 +4,18 @@ import librosa.display
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+import torchvision.models as models
+import torch.nn as nn
 import sqlite3
+import pandas as pd
+import torch
+import torch.nn as nn
+import torchvision.models as models
+import torchvision.transforms as transforms
+from PIL import Image
+import matplotlib.pyplot as plt
+import librosa.display
+
 
 
 
@@ -24,7 +35,7 @@ if page == "🏠 Welcome_Page":
     st.title("🎶🐦 What is this bird?")
     st.write("Hello fellow Bird Enthusiast! Pleased to have you. Did you ever wander through the forest and heard a perculiar song, one which you cannot categorize? Well, this App helps identifying it! With the help of a preptrained AI model, we can predict the species of the bird. In the current version it is solely able to tell you if it is endangered or not. Further updates are to come 🦜🌳")
     st.write("")
- # image
+ # image    
     st.image('images/Ornithologist.png', width=450)
  #button
     if st.button("Recorded a sound? Click here! 🎵"):  # Fixed emoji
@@ -89,29 +100,86 @@ elif page == "📊 Spectrogram":
 #########################################################################################################################################
 # Analysis
 elif page == "🔍 Analysis":
-    st.title("🔍 AI Analysis on it's Endangered Status")
+    st.title("🔍 AI Analysis on its Endangered Status")
 
-    if "spectrogram" in st.session_state:  # Fixed key name (Spectrogram → spectrogram)
+    if "spectrogram" in st.session_state:
         st.success("📊 Spectrogram loaded, ready to analyze!")
 
-        # Modell-Integration (wenn später verfügbar)
-        MODEL_PATH = "bird_model.pth"  # UPDATE, wenn Modell vorhanden
-        try:
-            model = torch.load(MODEL_PATH, map_location=torch.device("cpu"))
-            model.eval()  # Modell auf Inferenz setzen
+        MODEL_PATH = "resnet_bird_224x224_round14.pth"  # Ensure the model file is in the same directory
 
-            # Spektrogramm für CNN vorbereiten
-            S = np.expand_dims(st.session_state["spectrogram"], axis=0)
-            S_tensor = torch.tensor(S).unsqueeze(0)  # (1, Height, Width)
+        import torch
+        import torch.nn as nn
+        import torchvision.models as models
+        import torchvision.transforms as transforms
+        from PIL import Image
+        import matplotlib.pyplot as plt
+        import librosa.display
 
-            # Modellvorhersage
-            prediction = model(S_tensor)
-            st.write("📢 prediction:", prediction)  # TODO: Ausgabe formatieren
+        # Function to load the model
+        @st.cache_resource()  # Cache the model so it loads only once
+        def load_model():  # PUT INTO DIFFERENT PYTHON SCRIPT
+            model = models.resnet50(weights=None)  # Don't load default weights
+    
+            # Recreate the exact FC layers used in training
+            model.fc = nn.Sequential(
+                nn.Linear(2048, 512),
+                nn.ReLU(),
+                nn.Linear(512, 150),
+                nn.ReLU(),
+                nn.Linear(150, 10),
+                nn.ReLU(),
+                nn.Dropout(p=0.3), 
+                nn.Linear(10, 3)  # Final 3-class classification layer
+            )
+    
+            # Load trained weights
+            model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device("cpu")))
+            model.eval()  # Set model to evaluation mode
+            return model
 
-        except FileNotFoundError:
-            st.warning("❌ model not found, please upload a model.")
+        # Load the model
+        model = load_model()
+        st.success("✅ Model loaded successfully!")
+
+        # Convert the spectrogram to an image
+        def spectrogram_to_image(spectrogram):
+            fig, ax = plt.subplots(figsize=(4, 4))
+            librosa.display.specshow(spectrogram, sr=22050, x_axis="time", y_axis="mel", ax=ax)
+            plt.axis('off')
+            
+            # Save the spectrogram as an image
+            spectrogram_path = "spectrogram.png"
+            plt.savefig(spectrogram_path, bbox_inches='tight', pad_inches=0)
+            plt.close(fig)
+
+            return spectrogram_path
+
+        # Generate spectrogram image
+        spectrogram_path = spectrogram_to_image(st.session_state["spectrogram"])
+        st.image(spectrogram_path, caption="Generated Spectrogram", use_container_width=True)
+
+        # Prepare image for ResNet50 model
+        transform = transforms.Compose([
+            transforms.Resize((224, 224)),  # ResNet50 expects 224x224 images
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5], std=[0.5])
+        ])
+
+        image = Image.open(spectrogram_path).convert("RGB")
+        input_tensor = transform(image).unsqueeze(0)  # Add batch dimension
+
+        # Perform Prediction
+        with torch.no_grad():
+            output = model(input_tensor)
+            predicted_class = torch.argmax(output, dim=1).item()
+
+        # Map prediction to Conservation Status
+        class_labels = ["Least Concern", "Vulnerable", "Endangered"]
+        prediction_label = class_labels[predicted_class]
+
+        st.write(f"🎯 **Predicted Conservation Status: {prediction_label}**")
     else:
-        st.warning("No Spectrogram found, please upload a file first!")
+        st.warning("⚠ No Spectrogram found! Please upload a file first.")
 
 
 #########################################################################################################################################
@@ -134,37 +202,38 @@ elif page == "📝 Metadata Survey":
     # Further Notes
     notes = st.text_area("📝 Further Notes (e.g., bird behavior):")
 
-    # Save Metadata to Session State
-    if st.button("Save Metadata"):
-        st.session_state["metadata"] = {
-            "location": location,
-            "weather": weather,
-            "time": str(time),  # Convert time to string
-            "notes": notes
-        }
-        st.success("✅ Metadata saved successfully!")
+############# Save Metadata to Database #############
 
-
-    conn = sqlite3.connect("metadata.db")
-
+# Function to save metadata to the database
+def save_metadata(location, weather, time, notes):
+    conn = sqlite3.connect("metadata.db")  
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS metadata
-             (location TEXT, weather TEXT, time TEXT, notes TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS metadata 
+                 (location TEXT, weather TEXT, time TEXT, notes TEXT)''')
+    c.execute("INSERT INTO metadata (location, weather, time, notes) VALUES (?, ?, ?, ?)", 
+              (location, weather, time, notes))
     conn.commit()
     conn.close()
-    # Display Saved Metadata
-    if "metadata" in st.session_state:
-        st.write("### Saved Metadata:")
-        st.write(f"📍 **Location:** {st.session_state['metadata']['location']}")
-        st.write(f"☁️ **Weather:** {st.session_state['metadata']['weather']}")
-        st.write(f"⏰ **Time of Recording:** {st.session_state['metadata']['time']}")
-        st.write(f"📝 **Notes:** {st.session_state['metadata']['notes']}")
 
-    # Navigation Buttons
-    if st.button("Back to Spectrogram 📊"):
-        st.session_state["page"] = "📊 Spectrogram"
-        st.rerun()
+# Function to export metadata as CSV and trigger download
+def export_metadata_to_csv():
+    conn = sqlite3.connect("metadata.db")  
+    df = pd.read_sql_query("SELECT * FROM metadata", conn)  
+    conn.close()
+    
+    csv_path = "metadata_export.csv"
+    df.to_csv(csv_path, index=False)  
+    return csv_path
 
-    if st.button("Back to Analysis 🔍"):
-        st.session_state["page"] = "🔍 Analysis"
-        st.rerun()
+# Save metadata and trigger download
+if st.button("Save Metadata & Download CSV"):
+    save_metadata(location, weather, str(time), notes)
+    csv_file = export_metadata_to_csv()
+    
+    with open(csv_file, "rb") as file:
+        st.download_button(
+            label="📥 Download CSV",
+            data=file,
+            file_name="metadata.csv",
+            mime="text/csv"
+        )
