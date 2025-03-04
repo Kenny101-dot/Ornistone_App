@@ -26,12 +26,6 @@ if uploaded_file is not None:
         st.stop()
     st.write(f"Maximum amplitude: {np.max(y)}")
 
-    # WAVEFORM, lets see if its necessary
-    st.write("📊 Waveform of the audio signal:")
-    fig, ax = plt.subplots(figsize=(10, 3))
-    librosa.display.waveshow(y[:sr * 5], sr=sr, ax=ax)  # Kürzen auf 5s
-    st.pyplot(fig)
-
     # show spectrogram
     S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
     S_dB = librosa.power_to_db(S + 1e-6, ref=np.max)  # Skalenproblem vermeiden

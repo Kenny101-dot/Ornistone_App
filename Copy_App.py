@@ -3,8 +3,12 @@
 st.set_page_config(page_title="Bird Sound Classifier", layout="wide")
 
 # Sidebar für Navigation
-pages = ["🏠 Welcome_Page", "📂 Audio-Upload", "📊 Spectrogram", "🔍 Analysis"]
-page = st.sidebar.radio("Navigation", pages)
+with st.sidebar:
+    st.title("Navigation")
+    st.image("images/line_dodo.png", use_column_width=True)
+    pages = ["🏠 Welcome_Page", "📂 Audio-Upload", "📊 Spectrogram", "🔍 Analysis"]
+    page = st.sidebar.radio("Navigation", pages)
+
 
 
 # Welcome_page
