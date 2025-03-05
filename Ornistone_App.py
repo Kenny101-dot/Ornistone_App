@@ -23,17 +23,15 @@ with st.sidebar:
 #########################################################################################################################################
 # Welcome_page
 if page == "🏠 Welcome_Page":
-    st.title("🎶🐦 What is this bird?")
-    st.write("Hello fellow Bird Enthusiast! Pleased to have you. Did you ever wander through the forest and heard a perculiar song, one which you cannot categorize? Well, this App helps identifying it! With the help of a preptrained AI model, we can predict the species of the bird. In the current version it is solely able to tell you if it is endangered or not. Further updates are to come 🦜🌳")
-    st.write("")  
- #button
-    if st.button("Recorded a sound? Click onto Upload audio file on the left side! 🎵"):  # Fixed emoji
-        st.session_state["page"] = "📂 Audio-Upload"
-        st.rerun()
- # blank space
+   
+    st.title("Hello fellow bird enthusiast! 🎶🐦")
+   
+    st.write("Pleased to have you. Did you ever wander through the forest and heard a perculiar song, one which you cannot categorize? Well, this App helps identifying it! With the help of a preptrained AI model, we can predict the species of the bird. In the current version it is solely able to tell you if it is endangered or not. Further updates are to come 🦜🌳") 
+    st.image("images/taube.png", width=800)
+    st.write("#### **Recorded a sound? Click onto 📂 Audio-Upload on the left side! 🎵**")
+
 
     
-
 #########################################################################################################################################
 # Audio-Upload
 elif page == "📂 Audio-Upload":
@@ -48,10 +46,9 @@ elif page == "📂 Audio-Upload":
         st.audio(file_path, format="audio/ogg")
         st.write("✅ file saved successfully!")
         st.session_state["file_path"] = file_path
-        
-        if st.button("Click on 📊 Spectrogram on the left side!"):  # Fixed button text
-            st.session_state["page"] = "📊 Spectrogram"
-            st.rerun()
+        st.write("")
+        st.write("#### **Click on 📊 Spectrogram on the left side!**")
+       
 
 #########################################################################################################################################
 # Spectrogram
@@ -79,10 +76,7 @@ elif page == "📊 Spectrogram":
         st.pyplot(fig)
 
         st.session_state["spectrogram"] = S_dB
-
-        if st.button("Click on 🔍 Analysis on the left side if you would like an estimation of the endangered status"):  # Fixed button text
-            st.session_state["page"] = "🔍 Analysis"
-            st.rerun()
+        st.write("#### **Click on 🔍 Analysis on the left side if you would like an estimation of the endangered status**")
     else:
         st.warning("Please upload a file first!")
 
@@ -109,7 +103,8 @@ elif page == "🔍 Analysis":
     else:
         st.warning("⚠ No Spectrogram found! Please upload a file first.")
 
-
+    st.write("")
+    st.write("#### **Now insert further information about the recording at the 📝 Metadata Survey page**")
 
 
 
