@@ -3,19 +3,12 @@ import librosa
 import librosa.display
 import numpy as np
 import matplotlib.pyplot as plt
-import torchvision.models as models
-import torch.nn as nn
 import sqlite3
 import pandas as pd
-import torch
-import torchvision.models as models
-import torchvision.transforms as transforms
 from PIL import Image
 from model_utils import load_model, spectrogram_to_image, predict_spectrogram
 from model_utils import save_metadata, export_metadata_to_csv
-
-
-
+import torch
 
 # Streamlit App Setup
 st.set_page_config(page_title="Bird Sound Classifier", layout="wide")
@@ -23,7 +16,7 @@ st.set_page_config(page_title="Bird Sound Classifier", layout="wide")
 # Sidebar für Navigation
 with st.sidebar:
     st.title("Navigation")
-    st.image("images/line_dodo.png", use_container_width=True)
+    st.image("images/Ornithologist.png", use_container_width=True)
     pages = ["🏠 Welcome_Page", "📂 Audio-Upload", "📊 Spectrogram", "🔍 Analysis", "📝 Metadata Survey"]
     page = st.radio("Go to", pages, index=0)
 
@@ -32,11 +25,9 @@ with st.sidebar:
 if page == "🏠 Welcome_Page":
     st.title("🎶🐦 What is this bird?")
     st.write("Hello fellow Bird Enthusiast! Pleased to have you. Did you ever wander through the forest and heard a perculiar song, one which you cannot categorize? Well, this App helps identifying it! With the help of a preptrained AI model, we can predict the species of the bird. In the current version it is solely able to tell you if it is endangered or not. Further updates are to come 🦜🌳")
-    st.write("")
- # image    
-    st.image('images/Ornithologist.png', width=450)
+    st.write("")  
  #button
-    if st.button("Recorded a sound? Click here! 🎵"):  # Fixed emoji
+    if st.button("Recorded a sound? Click onto Upload audio file on the left side! 🎵"):  # Fixed emoji
         st.session_state["page"] = "📂 Audio-Upload"
         st.rerun()
  # blank space
@@ -58,7 +49,7 @@ elif page == "📂 Audio-Upload":
         st.write("✅ file saved successfully!")
         st.session_state["file_path"] = file_path
         
-        if st.button("To Spectrogram 📊"):  # Fixed button text
+        if st.button("Click on 📊 Spectrogram on the left side!"):  # Fixed button text
             st.session_state["page"] = "📊 Spectrogram"
             st.rerun()
 
@@ -75,7 +66,7 @@ elif page == "📊 Spectrogram":
             st.error("❌ Empty audio file, please upload a valid file!")
             st.stop()
 
-        st.write(f"Maximale Amplitude: {np.max(y)}")
+        st.write(f"Maximum amplitude: {np.max(y)}. This is a validation that there is sound in the file.")
         st.write(f"Looks like a valid audio file! 🎉")
 
         # Mel-Spektrogramm berechnen
@@ -89,40 +80,36 @@ elif page == "📊 Spectrogram":
 
         st.session_state["spectrogram"] = S_dB
 
-        if st.button("To Analysis 🔍"):  # Fixed button text
+        if st.button("Click on 🔍 Analysis on the left side if you would like an estimation of the endangered status"):  # Fixed button text
             st.session_state["page"] = "🔍 Analysis"
             st.rerun()
     else:
         st.warning("Please upload a file first!")
 
 #########################################################################################################################################
-# Analysis
-
-# Analysis Page
-
+#  Analysis Page
 elif page == "🔍 Analysis":
     st.title("🔍 AI Analysis on its Endangered Status")
 
     if "spectrogram" in st.session_state:
         st.success("📊 Spectrogram loaded, ready to analyze!")
 
-        # Load the model once (caching for speed)
-        @st.cache_resource()
-        def get_model():
-            return load_model()
-
-        model = get_model()
-        st.success("✅ Model loaded successfully!")
-
         # Convert spectrogram to image
         spectrogram_path = spectrogram_to_image(st.session_state["spectrogram"])
-        st.image(spectrogram_path, caption="Generated Spectrogram", use_container_width=True)
+        #st.image(spectrogram_path, caption="Generated Spectrogram", use_column_width=True)
 
         # Perform prediction
-        prediction_label = predict_spectrogram(model, spectrogram_path)
+        prediction_label, top3_probs = predict_spectrogram(spectrogram_path)
+
+        # Display results
         st.write(f"🎯 **Predicted Conservation Status: {prediction_label}**")
+        st.write("🔢 **Class Probabilities:**")
+        for label, prob in top3_probs.items():
+            st.write(f"- {label}: {prob * 100:.2f}%")
     else:
         st.warning("⚠ No Spectrogram found! Please upload a file first.")
+
+
 
 
 
@@ -148,19 +135,14 @@ elif page == "📝 Metadata Survey":
     # Further Notes
     notes = st.text_area("📝 Further Notes:")
 
-#########################################################################################################################################
-# Save Metadata to Database
-
-############# Save Metadata to Database #############
-
-if st.button("Save Metadata & Download CSV"):
-    save_metadata(location, weather, str(time), notes)
-    csv_file = export_metadata_to_csv()
-    
-    with open(csv_file, "rb") as file:
-        st.download_button(
-            label="📥 Download CSV",
-            data=file,
-            file_name="metadata.csv",
-            mime="text/csv"
-        )
+    if st.button("Save Metadata & Download CSV"):
+            save_metadata(location, weather, str(time), notes)
+            csv_file = export_metadata_to_csv()
+            
+            with open(csv_file, "rb") as file:
+                st.download_button(
+                    label="📥 Download CSV",
+                    data=file,
+                    file_name="metadata.csv",
+                    mime="text/csv"
+                )
