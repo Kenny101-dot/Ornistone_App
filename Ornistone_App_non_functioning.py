@@ -3,17 +3,19 @@ import librosa
 import librosa.display
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
 import torchvision.models as models
 import torch.nn as nn
 import sqlite3
 import pandas as pd
 import torch
+import torch.nn as nn
 import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image
-from model_utils import load_model, spectrogram_to_image, predict_spectrogram
-from model_utils import save_metadata, export_metadata_to_csv
-
+import matplotlib.pyplot as plt
+import librosa.display
+import numpy as np
 
 
 
@@ -97,39 +99,78 @@ elif page == "📊 Spectrogram":
 
 #########################################################################################################################################
 # Analysis
-
-# Analysis Page
-
 elif page == "🔍 Analysis":
     st.title("🔍 AI Analysis on its Endangered Status")
 
     if "spectrogram" in st.session_state:
         st.success("📊 Spectrogram loaded, ready to analyze!")
 
-        # Load the model once (caching for speed)
-        @st.cache_resource()
-        def get_model():
-            return load_model()
+        MODEL_PATH = "resnet_bird_224x224_round14.pth"  # Path to your PyTorch model
 
-        model = get_model()
+
+        # Define the model architecture
+        class CustomResNet50(nn.Module):
+            def __init__(self):
+                super(CustomResNet50, self).__init__()
+                self.resnet50 = models.resnet50(weights=None)
+                self.resnet50.fc = nn.Sequential(
+                    nn.Linear(2048, 512),
+                    nn.ReLU(),
+                    nn.Linear(512, 150),
+                    nn.ReLU(),
+                    nn.Linear(150, 10),
+                    nn.ReLU(),
+                    nn.Dropout(p=0.3),  # Dropout before the final layer
+                    nn.Linear(10, 3) 
+                )
+
+            def forward(self, x):
+                return self.resnet50(x)
+
+        # Load the model (cached)
+        @st.cache_resource()
+        def load_model():
+            model = CustomResNet50()
+            model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device("cpu")))
+            model.eval()
+            return model
+         # Load the model
+        model = load_model()
         st.success("✅ Model loaded successfully!")
 
-        # Convert spectrogram to image
-        spectrogram_path = spectrogram_to_image(st.session_state["spectrogram"])
-        st.image(spectrogram_path, caption="Generated Spectrogram", use_container_width=True)
+        # Convert spectrogram to tensor
+        def spectrogram_to_tensor(spectrogram, target_size=(224, 224)):
+            fig, ax = plt.subplots(figsize=(4, 4))
+            librosa.display.specshow(spectrogram, sr=22050, x_axis="time", y_axis="mel", ax=ax)
+            plt.axis('off')
+            fig.canvas.draw()
+            image = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+            image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+            plt.close(fig)
+            image = Image.fromarray(image).resize(target_size)
+            image = np.array(image) / 255.0
+            image = torch.from_numpy(image).permute(2, 0, 1).float()
+            image = transforms.Normalize(mean=[0.5], std=[0.5])(image)
+            return image.unsqueeze(0)
+
+        # Generate input tensor
+        input_tensor = spectrogram_to_tensor(st.session_state["spectrogram"])
 
         # Perform prediction
-        prediction_label = predict_spectrogram(model, spectrogram_path)
+        with torch.no_grad():
+            output = model(input_tensor)
+            predicted_class = torch.argmax(output, dim=1).item()
+
+        # Map prediction to Conservation Status
+        class_labels = ["Least Concern", "Vulnerable", "Endangered"]
+        prediction_label = class_labels[predicted_class]
+
         st.write(f"🎯 **Predicted Conservation Status: {prediction_label}**")
     else:
         st.warning("⚠ No Spectrogram found! Please upload a file first.")
 
-
-
 #########################################################################################################################################
-
 # Metadata Survey Page
-
 elif page == "📝 Metadata Survey":
     st.title("📝 Metadata Survey")
     st.write("Please provide additional information about the recording.")
@@ -146,13 +187,32 @@ elif page == "📝 Metadata Survey":
     time = st.time_input("Select Time", value=None)  # No default time
 
     # Further Notes
-    notes = st.text_area("📝 Further Notes:")
-
-#########################################################################################################################################
-# Save Metadata to Database
+    notes = st.text_area("📝 Further Notes (e.g., bird behavior):")
 
 ############# Save Metadata to Database #############
 
+# Function to save metadata to the database
+def save_metadata(location, weather, time, notes):
+    conn = sqlite3.connect("metadata.db")  
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS metadata 
+                 (location TEXT, weather TEXT, time TEXT, notes TEXT)''')
+    c.execute("INSERT INTO metadata (location, weather, time, notes) VALUES (?, ?, ?, ?)", 
+              (location, weather, time, notes))
+    conn.commit()
+    conn.close()
+
+# Function to export metadata as CSV and trigger download
+def export_metadata_to_csv():
+    conn = sqlite3.connect("metadata.db")  
+    df = pd.read_sql_query("SELECT * FROM metadata", conn)  
+    conn.close()
+    
+    csv_path = "metadata_export.csv"
+    df.to_csv(csv_path, index=False)  
+    return csv_path
+
+# Save metadata and trigger download
 if st.button("Save Metadata & Download CSV"):
     save_metadata(location, weather, str(time), notes)
     csv_file = export_metadata_to_csv()
