@@ -1,0 +1,35 @@
+digraph {
+	rankdir=TB size=10 
+	dot.attr(rankdir='LR', size='12')
+	dot.render("fc_layer_structure_horizontal")
+	Input [label="Input
+(2048)" height=1.0 width=2.0]
+	FC1 [label="FC1
+(512)" height=0.4375 width=0.875]
+	ReLU1 [label="ReLU1
+(512)" height=0.4375 width=0.875]
+	FC2 [label="FC2
+(150)" height=0.304931640625 width=0.60986328125]
+	ReLU2 [label="ReLU2
+(150)" height=0.304931640625 width=0.60986328125]
+	FC3 [label="FC3
+(10)" height=0.253662109375 width=0.50732421875]
+	ReLU3 [label="ReLU3
+(10)" height=0.253662109375 width=0.50732421875]
+	Dropout [label="Dropout
+(10)" height=0.253662109375 width=0.50732421875]
+	FC4 [label="FC4
+(3)" height=0.2510986328125 width=0.502197265625]
+	Output [label="Output
+(3)" height=0.2510986328125 width=0.502197265625]
+	Input -> FC1
+	FC1 -> ReLU1
+	ReLU1 -> FC2
+	FC2 -> ReLU2
+	ReLU2 -> FC3
+	FC3 -> ReLU3
+	ReLU3 -> Dropout
+	Dropout -> FC4
+	FC4 -> Output
+	
+}

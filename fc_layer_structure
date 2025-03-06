@@ -1,0 +1,30 @@
+digraph {
+	rankdir=TB size=8
+	dot.render("fc_layer_structure_horizontal")
+	Input [label="Input
+(2048)"]
+	FC1 [label="Linear
+(2048 → 512)"]
+	ReLU1 [label=ReLU]
+	FC2 [label="Linear
+(512 → 150)"]
+	ReLU2 [label=ReLU]
+	FC3 [label="Linear
+(150 → 10)"]
+	ReLU3 [label=ReLU]
+	Dropout [label="Dropout (p=0.3)"]
+	FC4 [label="Linear
+(10 → 3)"]
+	Output [label="Output
+(3 Klassen)"]
+	Input -> FC1
+	FC1 -> ReLU1
+	ReLU1 -> FC2
+	FC2 -> ReLU2
+	ReLU2 -> FC3
+	FC3 -> ReLU3
+	ReLU3 -> Dropout
+	Dropout -> FC4
+	FC4 -> Output
+}
+

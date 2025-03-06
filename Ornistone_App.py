@@ -1,3 +1,4 @@
+from matplotlib import transforms
 import streamlit as st
 import librosa
 import librosa.display
@@ -6,12 +7,35 @@ import matplotlib.pyplot as plt
 import sqlite3
 import pandas as pd
 from PIL import Image
-from model_utils import load_model, spectrogram_to_image, predict_spectrogram
 from model_utils import save_metadata, export_metadata_to_csv
 import torch
+import cv2
+from model_utils import predict_spectrogram
 
 # Streamlit App Setup
 st.set_page_config(page_title="Bird Sound Classifier", layout="wide")
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #E2EAE2;
+    }
+    .stApp {
+    secondaryBackgroundColor="#1daa0e"
+    }
+    .stButton>button {
+        background-color: #1b6211;
+        color: #ffffff;
+    }
+    .stTextInput>div>div>input {
+        background-color: #ffffff;
+        color: #0C0B0B;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 
 # Sidebar für Navigation
 with st.sidebar:
@@ -25,8 +49,6 @@ with st.sidebar:
 if page == "🏠 Welcome_Page":
    
     st.title("Hello fellow bird enthusiast! 🎶🐦")
-   
-    st.write("Pleased to have you. Did you ever wander through the forest and heard a perculiar song, one which you cannot categorize? Well, this App helps identifying it! With the help of a preptrained AI model, we can predict the species of the bird. In the current version it is solely able to tell you if it is endangered or not. Further updates are to come 🦜🌳") 
     st.image("images/taube.png", width=800)
     st.write("#### **Recorded a sound? Click onto 📂 Audio-Upload on the left side! 🎵**")
 
@@ -63,9 +85,7 @@ elif page == "📊 Spectrogram":
             st.error("❌ Empty audio file, please upload a valid file!")
             st.stop()
 
-        st.write(f"Maximum amplitude: {np.max(y)}. This is a validation that there is sound in the file.")
-        st.write(f"Looks like a valid audio file! 🎉")
-
+        st.write(f"Looks like a valid audio file! 🎉 Maximum amplitude: {np.max(y)}.")
         # Mel-Spektrogramm berechnen
         S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
         S_dB = librosa.power_to_db(S + 1e-6, ref=np.max)
@@ -81,30 +101,31 @@ elif page == "📊 Spectrogram":
         st.warning("Please upload a file first!")
 
 #########################################################################################################################################
-#  Analysis Page
+# Ornistone_App.py
+
 elif page == "🔍 Analysis":
     st.title("🔍 AI Analysis on its Endangered Status")
-
+    st.write("")
     if "spectrogram" in st.session_state:
-        st.success("📊 Spectrogram loaded, ready to analyze!")
+        # 🔥 Direkt die Vorhersage aufrufen
+        prediction_label, top3_probs = predict_spectrogram(st.session_state["spectrogram"])
 
-        # Convert spectrogram to image
-        spectrogram_path = spectrogram_to_image(st.session_state["spectrogram"])
-        #st.image(spectrogram_path, caption="Generated Spectrogram", use_column_width=True)
-
-        # Perform prediction
-        prediction_label, top3_probs = predict_spectrogram(spectrogram_path)
-
-        # Display results
-        st.write(f"🎯 **Predicted Conservation Status: {prediction_label}**")
+        st.write(f"### 🎯 **Predicted Conservation Status: {prediction_label}**")
+        st.write("")
         st.write("🔢 **Class Probabilities:**")
         for label, prob in top3_probs.items():
             st.write(f"- {label}: {prob * 100:.2f}%")
-    else:
-        st.warning("⚠ No Spectrogram found! Please upload a file first.")
 
-    st.write("")
-    st.write("#### **Now insert further information about the recording at the 📝 Metadata Survey page**")
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("#### **Now insert further information about the recording at the 📝 Metadata Survey page**")
+    else:
+        st.warning("⚠️ No spectrogram available. Please upload an audio file first!")
+
 
 
 
