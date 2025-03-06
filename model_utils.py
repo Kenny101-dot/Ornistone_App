@@ -56,13 +56,13 @@ def predict_spectrogram(S_dB):
 
 ########################### saving metadata functions ########################################
 
-def save_metadata(location, weather, time, notes):
+def save_metadata(location, weather, time, call_types, notes):
     conn = sqlite3.connect("metadata.db")  
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS metadata 
-                 (location TEXT, weather TEXT, time TEXT, notes TEXT)''')
-    c.execute("INSERT INTO metadata (location, weather, time, notes) VALUES (?, ?, ?, ?)", 
-              (location, weather, time, notes))
+                 (location TEXT, weather TEXT, time TEXT, call_types TEXT, notes TEXT)''')
+    c.execute("INSERT INTO metadata (location, weather, time, notes) VALUES (?, ?, ?, ?, ?)", 
+              (location, weather, time, call_types, notes))
     conn.commit()
     conn.close()
 

@@ -148,6 +148,10 @@ elif page == "📝 Metadata Survey":
     st.write("⏰ Time of Recording:")
     time = st.time_input("Select Time", value=None)  # No default time
 
+    # Call type
+    call_types = ["Alarm", "Flight", "Night Flight", "Nesting Juvenile", "Mating", "Roosting Call", "Distress Call",]
+    st.selectbox("☁️ Call Type:", call_types)
+
     # Further Notes
     notes = st.text_area("📝 Further Notes:")
 
