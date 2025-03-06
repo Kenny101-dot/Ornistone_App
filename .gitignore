@@ -3,4 +3,16 @@ env
 
 READ_ME.txt
 
-XC129378.ogg
+*.ogg
+
+
+X*.ogg
+
+
+resnet*
+
+metadata*
+
+metadata.db
+
+spectrogram*
