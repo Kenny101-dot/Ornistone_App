@@ -149,14 +149,14 @@ elif page == "📝 Metadata Survey":
     time = st.time_input("Select Time", value=None)  # No default time
 
     # Call type
-    call_types = ["Alarm", "Flight", "Night Flight", "Nesting Juvenile", "Mating", "Roosting Call", "Distress Call",]
-    st.selectbox("☁️ Call Type:", call_types)
+    call_types = ["Alarm", "Flight", "Night Flight", "Nesting Juvenile", "Mating", "Roosting Call", "Distress Call", "I don't know"]
+    call = st.selectbox("Call Type:", call_types)
 
     # Further Notes
     notes = st.text_area("📝 Further Notes:")
 
     if st.button("Save Metadata & Download CSV"):
-            save_metadata(location, weather, str(time), notes)
+            save_metadata(location, weather, str(time), call, notes)
             csv_file = export_metadata_to_csv()
             
             with open(csv_file, "rb") as file:
